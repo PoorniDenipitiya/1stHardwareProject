@@ -1,0 +1,125 @@
+#include <DMD32.h>    //Dmd32 library for displaying the p10
+#include <SPI.h>      //library is to enable communication with Sd card  using the Serial Peripheral Interface (SPI) protocol.
+                      // (SPI) protocol is a synchronous serial communication protocol that allows communication between a
+                      // microcontroller (master) and one or more peripheral devices (slaves)
+#include <SD.h>       //library is used to enable communication with SD (Secure Digital) card
+#include "fonts/SystemFont5x7.h"  //fonts that uses by dmd32 library for displaying p10
+#include "fonts/Arial_black_16.h"
+
+// Fire up the DMD library as dmd
+#define DISPLAYS_ACROSS 1    //define the cross panal of the p10 led display
+#define DISPLAYS_DOWN 1      //define the down panal of the p10 led display
+DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);   //inializing the p10 led display with the number of Display across and Down
+
+// Timer setup
+// Create a hardware timer of ESP32
+hw_timer_t *timer = NULL;
+
+// SD card setup
+const int chipSelect = 15;   //select the slave device
+File dataFile;      //a file declaration for sd text file.
+
+char txtin_sd[100];    // an array for save the text file which is in the sd in an array
+
+
+void IRAM_ATTR triggerScan()
+{
+  dmd.scanDisplayBySPI();
+}
+
+
+// a pointing function that reads the text file of the sd card and return the data file
+char *sd()
+{
+  if (!SD.begin(chipSelect))      //conforming whether is sd card available
+  {
+    Serial.println("SD card failed");
+    while (1)  ; // Stop execution if SD card initialization fails
+  }
+
+  // Open the data file on the SD card
+  dataFile = SD.open("/data.txt");
+  if (!dataFile)
+  {
+    Serial.println("File not found");
+    while (1)   ; // Stop execution if file opening fails
+  }
+
+  if (dataFile.available())
+  {
+    // Read the entire sentence from the file
+    String sentence = dataFile.readStringUntil('\n'); //it will scan the whole sentence.
+    char *char_array_sentence = new char[sentence.length() + 1];  //inializing a pointer char that with the lenth of Sentence. 
+    sentence.toCharArray(char_array_sentence, sentence.length() + 1);   //converting the sentence to char_array_sentence.
+
+    dataFile.close();   //closing the datafile 
+    SD.end();        //closing the sd file.
+
+    return char_array_sentence;  //return the char_array_sentence for printing
+
+  }
+
+  SD.end(); //close the sd file even though datfile not available.
+
+  return nullptr; // Return nullptr if no data is available
+}
+
+
+void setup(void)
+{
+  Serial.begin(115200); // start the serial communication.
+
+  char *txt = sd();  // sd() funtion will return the sd input and it will saved on a poining char "txt".
+  if (txt != nullptr)  //checks if there is nothing in the txt file.
+  {
+    strncpy(txtin_sd, txt, sizeof(txtin_sd) - 1);  //copy the pointing text file to a static char file named "txtin_sd"
+    txtin_sd[sizeof(txtin_sd) - 1] = '\0'; // Ensure null-terminated string
+    delete[] txt;   //delete the txt array for space allocation.
+  }
+ 
+//set up for p10 led display 
+  // Return the clock speed of the CPU
+  uint8_t cpuClock = ESP.getCpuFreqMHz();
+
+  // Use 1st timer of 4
+  // Divide the CPU clock speed on its speed value by MHz to get 1us for each signal of the timer
+  timer = timerBegin(0, cpuClock, true);
+  // Attach triggerScan function to our timer
+  timerAttachInterrupt(timer, &triggerScan, true);
+  // Set alarm to call triggerScan function
+  // Repeat the alarm (third parameter)
+  timerAlarmWrite(timer, 300, true);
+
+  // Start an alarm
+  timerAlarmEnable(timer);
+
+  // Clear/init the DMD pixels held in RAM
+  dmd.clearScreen(true); // true is normal (all pixels off), false is negative (all pixels on)
+}
+
+
+void loop(void)
+{
+
+  // 10 x 14 font clock, including a demo of OR and NOR modes for pixels so that the flashing colon can be overlayed
+  dmd.clearScreen(true);   //a clearing function for p10 led display.
+  dmd.selectFont(Arial_Black_16); //selecting the font style.
+
+  if (txtin_sd[0] != '\0') // Check if text is available
+  {
+    Serial.println(txtin_sd); //Print sd text file in the serial monitor. 
+    dmd.drawMarquee(txtin_sd, 14, (32 * DISPLAYS_ACROSS) - 1, 0);  // a function for draw the text file in the marquee
+  }
+
+  long start = millis();    //set the current time.
+  long timer = start;     //copy the current time in timer.
+  boolean ret = false;    //set up a bool for loop function of marquee.
+  while (!ret)
+  {
+    if ((timer + 30) < millis())  //set upping the timer for marquee.
+    {
+      ret = dmd.stepMarquee(-1, 0);  //make the text file to move in marquee style.
+      timer = millis();
+    }
+  }
+}
