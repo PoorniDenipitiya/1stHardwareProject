@@ -1,0 +1,632 @@
+void vGenerateTCPSyncPack()
+{
+  vGenerateETHIPTCPHeader();
+  eucBuffer[TCP_HEADER_FLAGS_ADDR] |= TCP_HEADER_FLAGS_SYN;
+
+  eucBuffer[TCP_HEADER_LEN_ADDR] = 0x60; //4bytes options
+  eucBuffer[TCP_HEADER_OPTIONS_ADDR + 0] = 2;
+  eucBuffer[TCP_HEADER_OPTIONS_ADDR + 1] = 4; //max segment size: 0x0578
+  eucBuffer[TCP_HEADER_OPTIONS_ADDR + 2] = 0x05;
+  eucBuffer[TCP_HEADER_OPTIONS_ADDR + 3] = 0x78;
+
+  eucBuffer[IP_HEADER_LEN_ADDR + 0] = 0;
+  eucBuffer[IP_HEADER_LEN_ADDR + 1] = IP_HEADER_LEN + TCP_HEADER_LEN + 4;
+
+  eusPacketLen = ETH_HEADER_LEN + IP_HEADER_LEN + TCP_HEADER_LEN + 4;
+}
+
+void vGenerateEthernetHeader()
+{
+  //Generating the ethernet header
+  eucBuffer[ETH_HEADER_DST_MAC_ADDR + 0] = eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 0];
+  eucBuffer[ETH_HEADER_DST_MAC_ADDR + 1] = eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 1];
+  eucBuffer[ETH_HEADER_DST_MAC_ADDR + 2] = eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 2];
+  eucBuffer[ETH_HEADER_DST_MAC_ADDR + 3] = eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 3];
+  eucBuffer[ETH_HEADER_DST_MAC_ADDR + 4] = eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 4];
+  eucBuffer[ETH_HEADER_DST_MAC_ADDR + 5] = eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 5];
+
+  eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 0] = ucMyMAC[0];
+  eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 1] = ucMyMAC[1];
+  eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 2] = ucMyMAC[2];
+  eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 3] = ucMyMAC[3];
+  eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 4] = ucMyMAC[4];
+  eucBuffer[ETH_HEADER_SRC_MAC_ADDR + 5] = ucMyMAC[5];
+}
+
+void vGenerateARPHeader()
+{
+  eucBuffer[ETH_HEADER_TYPE_ADDR] = ETH_HEADER_TYPE_ARP_H;
+  eucBuffer[ETH_HEADER_TYPE_ADDR + 1] = ETH_HEADER_TYPE_ARP_L;
+
+  eucBuffer[ARP_HEADER_OPER_ADDR + 1] = ARP_HEADER_OPER_REPLAY;
+
+  eucBuffer[ARP_HEADER_THA_ADDR + 0] = eucBuffer[ARP_HEADER_SHA_ADDR + 0];
+  eucBuffer[ARP_HEADER_THA_ADDR + 1] = eucBuffer[ARP_HEADER_SHA_ADDR + 1];
+  eucBuffer[ARP_HEADER_THA_ADDR + 2] = eucBuffer[ARP_HEADER_SHA_ADDR + 2];
+  eucBuffer[ARP_HEADER_THA_ADDR + 3] = eucBuffer[ARP_HEADER_SHA_ADDR + 3];
+  eucBuffer[ARP_HEADER_THA_ADDR + 4] = eucBuffer[ARP_HEADER_SHA_ADDR + 4];
+  eucBuffer[ARP_HEADER_THA_ADDR + 5] = eucBuffer[ARP_HEADER_SHA_ADDR + 5];
+
+  eucBuffer[ARP_HEADER_SHA_ADDR + 0] = ucMyMAC[0];
+  eucBuffer[ARP_HEADER_SHA_ADDR + 1] = ucMyMAC[1];
+  eucBuffer[ARP_HEADER_SHA_ADDR + 2] = ucMyMAC[2];
+  eucBuffer[ARP_HEADER_SHA_ADDR + 3] = ucMyMAC[3];
+  eucBuffer[ARP_HEADER_SHA_ADDR + 4] = ucMyMAC[4];
+  eucBuffer[ARP_HEADER_SHA_ADDR + 5] = ucMyMAC[5];
+
+  eucBuffer[ARP_HEADER_TPA_ADDR + 0] = eucBuffer[ARP_HEADER_SPA_ADDR + 0];
+  eucBuffer[ARP_HEADER_TPA_ADDR + 1] = eucBuffer[ARP_HEADER_SPA_ADDR + 1];
+  eucBuffer[ARP_HEADER_TPA_ADDR + 2] = eucBuffer[ARP_HEADER_SPA_ADDR + 2];
+  eucBuffer[ARP_HEADER_TPA_ADDR + 3] = eucBuffer[ARP_HEADER_SPA_ADDR + 3];
+
+  eucBuffer[ARP_HEADER_SPA_ADDR + 0] = DEFAULT_SIP_0;
+  eucBuffer[ARP_HEADER_SPA_ADDR + 1] = DEFAULT_SIP_1;
+  eucBuffer[ARP_HEADER_SPA_ADDR + 2] = DEFAULT_SIP_2;
+  eucBuffer[ARP_HEADER_SPA_ADDR + 3] = DEFAULT_SIP_3;
+
+  eusPacketLen = ETH_HEADER_LEN + ARP_HEADER_LEN;
+}
+
+void vGenerateETHIPTCPHeader()
+{
+  vGenerateEthernetHeader();
+
+  eucBuffer[ETH_HEADER_TYPE_ADDR + 0] = ETH_HEADER_TYPE_IP_H;
+  eucBuffer[ETH_HEADER_TYPE_ADDR + 1] = ETH_HEADER_TYPE_IP_L;
+
+  eucBuffer[IP_HEADER_VER_IHL_ADDR] = IP_HEADER_VER_IHL;
+  eucBuffer[IP_HEADER_TOS_ADDR] = 0;
+  eucBuffer[IP_HEADER_ID_ADDR] = 0x00;
+  eucBuffer[IP_HEADER_ID_ADDR + 1] = 0x00;
+
+  eucBuffer[IP_HEADER_FLAGS_FRAG_ADDR] = 0x40;
+  eucBuffer[IP_HEADER_FLAGS_FRAG_ADDR + 1] = 0x00;
+
+  eucBuffer[IP_HEADER_TTL_ADDR] = 64;//0x20;
+
+  eucBuffer[IP_HEADER_PROTOCOL_ADDR] = IP_HEADER_PROTOCOL_TCP;
+
+  unsigned char uc;
+
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 0];
+  eucBuffer[IP_HEADER_DST_ADDR + 0] = eucBuffer[IP_HEADER_SRC_ADDR + 0 + eucI];
+  eucBuffer[IP_HEADER_SRC_ADDR + 0] = uc;
+  
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 1];
+  eucBuffer[IP_HEADER_DST_ADDR + 1] = eucBuffer[IP_HEADER_SRC_ADDR + 1 + eucI];
+  eucBuffer[IP_HEADER_SRC_ADDR + 1] = uc;
+  
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 2];
+  eucBuffer[IP_HEADER_DST_ADDR + 2] = eucBuffer[IP_HEADER_SRC_ADDR + 2 + eucI];
+  eucBuffer[IP_HEADER_SRC_ADDR + 2] = uc;
+  
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 3];
+  eucBuffer[IP_HEADER_DST_ADDR + 3] = eucBuffer[IP_HEADER_SRC_ADDR + 3 + eucI];
+  eucBuffer[IP_HEADER_SRC_ADDR + 3] = uc;
+
+  //TCP header
+  eusK = ((unsigned short)eucBuffer[TCP_HEADER_SRC_PORT_ADDR + 0 + eucI] << 8)
+          | eucBuffer[TCP_HEADER_SRC_PORT_ADDR + 1 + eucI];
+
+  eusI = ((unsigned short)eucBuffer[TCP_HEADER_DST_PORT_ADDR + 0 + eucI] << 8)
+          | eucBuffer[TCP_HEADER_DST_PORT_ADDR + 1 + eucI];
+
+  euiAckNum = ((unsigned int)eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 0 + eucI] << 24)
+              | ((unsigned int)eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 1 + eucI] << 16)
+              | ((unsigned int)eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 2 + eucI] << 8)
+              | eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 3 + eucI];
+
+  eucBuffer[TCP_HEADER_SRC_PORT_ADDR + 0] = eusI >> 8;
+  eucBuffer[TCP_HEADER_SRC_PORT_ADDR + 1] = eusI & 0xFF;
+
+  eucBuffer[TCP_HEADER_DST_PORT_ADDR + 0] = eusK >> 8;
+  eucBuffer[TCP_HEADER_DST_PORT_ADDR + 1] = eusK & 0xFF;
+
+  if(eucBuffer[TCP_HEADER_FLAGS_ADDR + eucI] & TCP_HEADER_FLAGS_SYN)
+  {
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 0] = (euiAckNum >> 24) & 0xFF;
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 1] = (euiAckNum >> 16) & 0xFF;
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 2] = (euiAckNum >> 8) & 0xFF;
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 3] = euiAckNum & 0xFF;
+
+    euiAckNum++;
+    
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 0] = (euiAckNum >> 24) & 0xFF;
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 1] = (euiAckNum >> 16) & 0xFF;
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 2] = (euiAckNum >> 8) & 0xFF;
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 3] = euiAckNum & 0xFF;
+  }
+  else //if(eucBuffer[TCP_HEADER_FLAGS_ADDR + eucI] & TCP_HEADER_FLAGS_ACK)
+  {
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 0] = eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 0 + eucI];
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 1] = eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 1 + eucI];
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 2] = eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 2 + eucI];
+    eucBuffer[TCP_HEADER_SEQ_NUM_ADDR + 3] = eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 3 + eucI];
+    
+    euiAckNum += eusPacketLen;
+    
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 0] = (euiAckNum >> 24) & 0xFF;
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 1] = (euiAckNum >> 16) & 0xFF;
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 2] = (euiAckNum >> 8) & 0xFF;
+    eucBuffer[TCP_HEADER_ACK_NUM_ADDR + 3] = euiAckNum & 0xFF;
+  }
+
+  eucBuffer[TCP_HEADER_LEN_ADDR] = 0x50;
+
+  eucBuffer[TCP_HEADER_FLAGS_ADDR] = TCP_HEADER_FLAGS_ACK;
+
+  eucBuffer[TCP_HEADER_WSIZE_ADDR + 0] = TCP_HEADER_WSIZE_H;
+  eucBuffer[TCP_HEADER_WSIZE_ADDR + 1] = TCP_HEADER_WSIZE_L;
+
+  eucBuffer[TCP_HEADER_PTR_ADDR + 0] = 0;
+  eucBuffer[TCP_HEADER_PTR_ADDR + 1] = 0;
+}
+
+void vGenerateIPUDPHeader()
+{
+  eucBuffer[ETH_HEADER_TYPE_ADDR + 0] = ETH_HEADER_TYPE_IP_H;
+  eucBuffer[ETH_HEADER_TYPE_ADDR + 1] = ETH_HEADER_TYPE_IP_L;
+
+  eucBuffer[IP_HEADER_VER_IHL_ADDR] = IP_HEADER_VER_IHL;
+  //eucBuffer[IP_HEADER_TOS_ADDR] = 0;
+  //eucBuffer[IP_HEADER_LEN_ADDR + 0]
+  //eucBuffer[IP_HEADER_LEN_ADDR + 1]
+  
+  //eucBuffer[IP_HEADER_ID_ADDR] = 1;
+  //eucBuffer[IP_HEADER_ID_ADDR + 1] = 232;
+  //eucBuffer[IP_HEADER_FLAGS_FRAG_ADDR] = 0x00;
+  //eucBuffer[IP_HEADER_FLAGS_FRAG_ADDR + 1] = 0x00;
+
+  //eucBuffer[IP_HEADER_TTL_ADDR] = 128;
+  eucBuffer[IP_HEADER_PROTOCOL_ADDR] = IP_HEADER_PROTOCOL_UDP;
+  //ucBuffer[IP_HEADER_CHECKSUM_ADDR]
+  //ucBuffer[IP_HEADER_CHECKSUM_ADDR + 1]
+
+  unsigned char uc;
+
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 0];
+  eucBuffer[IP_HEADER_DST_ADDR + 0] = eucBuffer[IP_HEADER_SRC_ADDR + 0];
+  eucBuffer[IP_HEADER_SRC_ADDR + 0] = uc;
+  
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 1];
+  eucBuffer[IP_HEADER_DST_ADDR + 1] = eucBuffer[IP_HEADER_SRC_ADDR + 1];
+  eucBuffer[IP_HEADER_SRC_ADDR + 1] = uc;
+  
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 2];
+  eucBuffer[IP_HEADER_DST_ADDR + 2] = eucBuffer[IP_HEADER_SRC_ADDR + 2];
+  eucBuffer[IP_HEADER_SRC_ADDR + 2] = uc;
+  
+  uc = eucBuffer[IP_HEADER_DST_ADDR + 3];
+  eucBuffer[IP_HEADER_DST_ADDR + 3] = eucBuffer[IP_HEADER_SRC_ADDR + 3];
+  eucBuffer[IP_HEADER_SRC_ADDR + 3] = uc;
+  
+  uc = eucBuffer[UDP_HEADER_SRC_PORT_ADDR];
+  eucBuffer[UDP_HEADER_SRC_PORT_ADDR] = eucBuffer[UDP_HEADER_DST_PORT_ADDR];
+  eucBuffer[UDP_HEADER_DST_PORT_ADDR] = uc;
+  
+  uc = eucBuffer[UDP_HEADER_SRC_PORT_ADDR + 1];
+  eucBuffer[UDP_HEADER_SRC_PORT_ADDR + 1] = eucBuffer[UDP_HEADER_DST_PORT_ADDR + 1];
+  eucBuffer[UDP_HEADER_DST_PORT_ADDR + 1] = uc;
+  
+
+}
+
+void vGenerateDHCPPayload()
+{
+  eucBuffer[DHCP_PLD_OPCODE_ADDR] = DHCP_PLD_OPCODE_RESP;
+  eucBuffer[DHCP_PLD_HW_TYPE_ADDR] = DHCP_PLD_HW_TYPE;
+  eucBuffer[DHCP_PLD_HW_LEN_ADDR] = DHCP_PLD_HW_LEN;
+  eucBuffer[DHCP_PLD_HOPS_ADDR] = DHCP_PLD_HOPS;
+
+  eucBuffer[DHCP_PLD_CIP_ADDR] = 0;
+  eucBuffer[DHCP_PLD_CIP_ADDR+1] = 0;
+  eucBuffer[DHCP_PLD_CIP_ADDR+2] = 0;
+  eucBuffer[DHCP_PLD_CIP_ADDR+3] = 0;
+
+  eucBuffer[DHCP_PLD_YIP_ADDR] = DEFAULT_SIP_0;
+  eucBuffer[DHCP_PLD_YIP_ADDR+1] = DEFAULT_SIP_1;
+  eucBuffer[DHCP_PLD_YIP_ADDR+2] = DEFAULT_SIP_2;
+  eucBuffer[DHCP_PLD_YIP_ADDR+3] = DEFAULT_CIP_3;
+
+  eucBuffer[DHCP_PLD_SIP_ADDR] = DEFAULT_SIP_0;
+  eucBuffer[DHCP_PLD_SIP_ADDR+1] = DEFAULT_SIP_1;
+  eucBuffer[DHCP_PLD_SIP_ADDR+2] = DEFAULT_SIP_2;
+  eucBuffer[DHCP_PLD_SIP_ADDR+3] = DEFAULT_SIP_3;
+
+  eucBuffer[DHCP_PLD_GIP_ADDR] = 0;
+  eucBuffer[DHCP_PLD_GIP_ADDR+1] = 0;
+  eucBuffer[DHCP_PLD_GIP_ADDR+2] = 0;
+  eucBuffer[DHCP_PLD_GIP_ADDR+3] = 0;
+  
+  eucBuffer[DHCP_PLD_OPT_ADDR] = DHCP_PLD_OPT53_ID;
+  eucBuffer[DHCP_PLD_OPT_ADDR+1] = DHCP_PLD_OPT53_LEN;
+  eucBuffer[DHCP_PLD_OPT_ADDR+2] = DHCP_PLD_OPT53_T_OFFER;
+  
+  eucBuffer[DHCP_PLD_OPT_ADDR+3] = DHCP_PLD_OPT1_ID;
+  eucBuffer[DHCP_PLD_OPT_ADDR+4] = DHCP_PLD_OPT1_LEN;
+  eucBuffer[DHCP_PLD_OPT_ADDR+5] = 255;
+  eucBuffer[DHCP_PLD_OPT_ADDR+6] = 255;
+  eucBuffer[DHCP_PLD_OPT_ADDR+7] = 255;
+  eucBuffer[DHCP_PLD_OPT_ADDR+8] = 0;
+  
+  eucBuffer[DHCP_PLD_OPT_ADDR+9] = DHCP_PLD_OPT3_ID;
+  eucBuffer[DHCP_PLD_OPT_ADDR+10] = DHCP_PLD_OPT3_LEN;
+  eucBuffer[DHCP_PLD_OPT_ADDR+11] = 192;
+  eucBuffer[DHCP_PLD_OPT_ADDR+12] = 168;
+  eucBuffer[DHCP_PLD_OPT_ADDR+13] = 6;
+  eucBuffer[DHCP_PLD_OPT_ADDR+14] = 1;
+  
+  eucBuffer[DHCP_PLD_OPT_ADDR+15] = DHCP_PLD_OPT6_ID;
+  eucBuffer[DHCP_PLD_OPT_ADDR+16] = DHCP_PLD_OPT6_LEN;
+  eucBuffer[DHCP_PLD_OPT_ADDR+17] = (uiDNSSIP >> 24) & 0xFF;
+  eucBuffer[DHCP_PLD_OPT_ADDR+18] = (uiDNSSIP >> 16) & 0xFF;
+  eucBuffer[DHCP_PLD_OPT_ADDR+19] = (uiDNSSIP >> 8) & 0xFF;
+  eucBuffer[DHCP_PLD_OPT_ADDR+20] = uiDNSSIP & 0xFF;
+
+  //One day 86400S
+  eucBuffer[DHCP_PLD_OPT_ADDR+21] = DHCP_PLD_OPT51_ID;
+  eucBuffer[DHCP_PLD_OPT_ADDR+22] = DHCP_PLD_OPT51_LEN;
+  eucBuffer[DHCP_PLD_OPT_ADDR+23] = 0x0;
+  eucBuffer[DHCP_PLD_OPT_ADDR+24] = 0x1;
+  eucBuffer[DHCP_PLD_OPT_ADDR+25] = 0x51;
+  eucBuffer[DHCP_PLD_OPT_ADDR+26] = 0x80;
+  
+  eucBuffer[DHCP_PLD_OPT_ADDR+27] = DHCP_PLD_OPT54_ID;
+  eucBuffer[DHCP_PLD_OPT_ADDR+28] = DHCP_PLD_OPT54_LEN;
+  eucBuffer[DHCP_PLD_OPT_ADDR+29] = 192;
+  eucBuffer[DHCP_PLD_OPT_ADDR+30] = 168;
+  eucBuffer[DHCP_PLD_OPT_ADDR+31] = 6;
+  eucBuffer[DHCP_PLD_OPT_ADDR+32] = 1;
+  
+  eucBuffer[DHCP_PLD_OPT_ADDR+33] = DHCP_PLD_OPTIONS_END_MARK;
+}
+
+
+// this function will host the webpage and receive the input.
+//function that handles (Transmission Control Protocol)TCP and (User Datagram Protocol)UDP  packets  TCP and UDP are communication through the internet.
+//If there is received data, it further checks if the destination IP address matches the internal address.
+//If every thing is set up , it'll receive user inputs char by char.
+//while it recive the user input a function will called named "Function" and it'll pass the char to an array"
+// indicator() that runs after reads input from ethernet
+
+void vTCPUDP()
+{
+  if(eucBuffer[IP_HEADER_PROTOCOL_ADDR] == IP_HEADER_PROTOCOL_TCP)
+  {
+#ifdef LOG_ENABLE
+    Serial.println("TCP");
+#endif
+    eucI = IP_HEADER_LEN - ((eucBuffer[IP_HEADER_VER_IHL_ADDR] & 0x0F) << 2);//IP_HEADER_LEN;
+    //data index
+    eusI = eucI + (((eucBuffer[TCP_HEADER_LEN_ADDR + eucI] >> 2) & 0xFC) - TCP_HEADER_LEN);
+
+    eusPacketLen = (unsigned short)eucBuffer[IP_HEADER_LEN_ADDR] << 8;
+    eusPacketLen |= eucBuffer[IP_HEADER_LEN_ADDR + 1];
+    eusPacketLen -= IP_HEADER_LEN + TCP_HEADER_LEN + eusI;
+    eucJ = 0;
+
+    //----LAN>Sync
+    //-----Me<Sync
+    //----Me>Sync+Ack
+    //-----LAN<Sync+Ack
+    //LOOP:
+    //----LAN>Ack [LAN>Ack+sData]
+    //-----Me<Ack [Me<Ack+sData]
+    //----Me>Ack [Me>Ack+cData] [Me>Ack+FIN+cData]
+    //-----LAN<Ack [LAN<Ack+cData] [LAN<Ack+FIN+cData]
+    //LOOP END
+    //----LAN>Ack+Fin
+    //-----Me<Ack+Fin
+    //----Me>Ack
+    //-----LAN<Ack
+    if(eucBuffer[TCP_HEADER_FLAGS_ADDR + eucI] & TCP_HEADER_FLAGS_SYN)
+    {
+      if(eucBuffer[IP_HEADER_DST_ADDR + 0] == DEFAULT_SIP_0
+        && eucBuffer[IP_HEADER_DST_ADDR + 1] == DEFAULT_SIP_1
+        && eucBuffer[IP_HEADER_DST_ADDR + 2] == DEFAULT_SIP_2
+        && eucBuffer[IP_HEADER_DST_ADDR + 3] == DEFAULT_SIP_3) //Internal
+      {
+#ifdef LOG_ENABLE
+        Serial.print("S");
+#endif
+        uiPageLoadedLen = PAGE_LOAD_WAIT;
+        vGenerateTCPSyncPack();
+        ENCPacketSend(); //Connected :)
+      }
+
+    }
+    else if(eucBuffer[TCP_HEADER_FLAGS_ADDR + eucI] & (TCP_HEADER_FLAGS_ACK|TCP_HEADER_FLAGS_FIN))
+    {
+      if(eusPacketLen != 0) //received data
+      {
+        if(eucBuffer[IP_HEADER_DST_ADDR + 0] == DEFAULT_SIP_0
+          && eucBuffer[IP_HEADER_DST_ADDR + 1] == DEFAULT_SIP_1
+          && eucBuffer[IP_HEADER_DST_ADDR + 2] == DEFAULT_SIP_2
+          && eucBuffer[IP_HEADER_DST_ADDR + 3] == DEFAULT_SIP_3) //Internal
+        {
+#ifdef LOG_ENABLE
+          Serial.print("R");
+#endif
+          //data index:
+          eusI += TCP_DATA_ADDR;
+        
+          if(eucBuffer[eusI] == 'G'
+            && eucBuffer[eusI+1] == 'E'
+            && eucBuffer[eusI+2] == 'T'
+            && eucBuffer[eusI+3] == ' '
+            && eucBuffer[eusI+4] == '/')
+          {
+            if(eucBuffer[eusI+5] != ' ') //text box date
+            {
+              char ch;
+              
+              eusI += 5;
+              while(1)
+              {
+                if(eucBuffer[eusI] == ' ')
+                  break;
+
+                if(eucBuffer[eusI] == '%') //de-coding
+                {
+                  eusI++;
+
+                  if(eucBuffer[eusI] <= '9')
+                    ch = (eucBuffer[eusI] - '0') << 4;
+                  else if(eucBuffer[eusI] <= 'F')
+                    ch = (eucBuffer[eusI] - 'A' + 10) << 4;
+                  else //if(eucBuffer[eusI] <= 'f')
+                    ch = (eucBuffer[eusI] - 'a' + 10) << 4;
+                    
+                  eusI++;
+
+                  if(eucBuffer[eusI] <= '9')
+                    ch |= (eucBuffer[eusI] - '0');
+                  else if(eucBuffer[eusI] <= 'F')
+                    ch |= (eucBuffer[eusI] - 'A' + 10);
+                  else //if(eucBuffer[eusI] <= 'f')
+                    ch |= (eucBuffer[eusI] - 'a' + 10);
+                }
+                else
+                  ch = eucBuffer[eusI];
+                
+                Getresponse(&ch);
+            
+
+                eusI++;
+              };
+              
+                indicator();
+                 
+                
+
+              uiPageLoadedLen = PAGE_LOADED;
+            }
+            else //loading the page
+              uiPageLoadedLen = 0;
+          }
+        }
+        
+      }
+
+      if(eucBuffer[TCP_HEADER_FLAGS_ADDR + eucI] & TCP_HEADER_FLAGS_FIN) //close connection
+      {
+        if(eucBuffer[IP_HEADER_DST_ADDR + 0] != DEFAULT_SIP_0
+          || eucBuffer[IP_HEADER_DST_ADDR + 1] != DEFAULT_SIP_1
+          || eucBuffer[IP_HEADER_DST_ADDR + 2] != DEFAULT_SIP_2
+          || eucBuffer[IP_HEADER_DST_ADDR + 3] != DEFAULT_SIP_3) //Internal
+        
+
+          
+        //send ack
+        eusPacketLen = 1;
+        vGenerateETHIPTCPHeader();
+        eucBuffer[IP_HEADER_LEN_ADDR + 0] = 0;
+        eucBuffer[IP_HEADER_LEN_ADDR + 1] = IP_HEADER_LEN + TCP_HEADER_LEN;
+        eusPacketLen = ETH_HEADER_LEN + IP_HEADER_LEN + TCP_HEADER_LEN;
+        ENCPacketSend();
+
+        //send ack+fin
+        eucBuffer[TCP_HEADER_FLAGS_ADDR] |= TCP_HEADER_FLAGS_FIN;
+        ENCPacketSend();
+      }
+      else
+      {
+        if(eucBuffer[IP_HEADER_DST_ADDR + 0] == DEFAULT_SIP_0
+          && eucBuffer[IP_HEADER_DST_ADDR + 1] == DEFAULT_SIP_1
+          && eucBuffer[IP_HEADER_DST_ADDR + 2] == DEFAULT_SIP_2
+          && eucBuffer[IP_HEADER_DST_ADDR + 3] == DEFAULT_SIP_3) //Internal
+        {
+          if(uiPageLoadedLen != PAGE_LOAD_WAIT)
+          {
+            vGenerateETHIPTCPHeader();
+#ifdef LOG_ENABLE
+            Serial.print("D");
+#endif
+            if(uiPageLoadedLen == 0
+              || uiPageLoadedLen == PAGE_LOADED
+              || uiPageLoadedLen == PAGE_404
+              || uiPageLoadedLen == PAGE_S)
+            {
+              eucBuffer[TCP_DATA_ADDR + 0] = 'H';
+              eucBuffer[TCP_DATA_ADDR + 1] = 'T';
+              eucBuffer[TCP_DATA_ADDR + 2] = 'T';
+              eucBuffer[TCP_DATA_ADDR + 3] = 'P';
+              eucBuffer[TCP_DATA_ADDR + 4] = '/';
+              eucBuffer[TCP_DATA_ADDR + 5] = '1';
+              eucBuffer[TCP_DATA_ADDR + 6] = '.';
+              eucBuffer[TCP_DATA_ADDR + 7] = '1';
+              eucBuffer[TCP_DATA_ADDR + 8] = ' ';
+              eucBuffer[TCP_DATA_ADDR + 9] = '2';
+              eucBuffer[TCP_DATA_ADDR + 10] = '0';
+              eucBuffer[TCP_DATA_ADDR + 11] = '0';
+              eucBuffer[TCP_DATA_ADDR + 12] = ' ';
+              eucBuffer[TCP_DATA_ADDR + 13] = 'O';
+              eucBuffer[TCP_DATA_ADDR + 14] = 'K';
+              eucBuffer[TCP_DATA_ADDR + 15] = '\r';
+              eucBuffer[TCP_DATA_ADDR + 16] = '\n';
+              eucBuffer[TCP_DATA_ADDR + 17] = '\r';
+              eucBuffer[TCP_DATA_ADDR + 18] = '\n';
+            }
+
+            if(uiPageLoadedLen == PAGE_LOADED)
+            {
+              eucBuffer[TCP_HEADER_FLAGS_ADDR] |= TCP_HEADER_FLAGS_FIN;
+              
+              eucBuffer[TCP_DATA_ADDR + 19] = '1';
+              
+              eucBuffer[IP_HEADER_LEN_ADDR + 0] = 0;
+              eucBuffer[IP_HEADER_LEN_ADDR + 1] = IP_HEADER_LEN + TCP_HEADER_LEN + 20;
+              eusPacketLen = ETH_HEADER_LEN + IP_HEADER_LEN + TCP_HEADER_LEN + 20;
+              
+              uiPageLoadedLen = PAGE_LOAD_WAIT;
+            }
+            else if(uiPageLoadedLen == PAGE_404)
+            {
+              eucBuffer[TCP_HEADER_FLAGS_ADDR] |= TCP_HEADER_FLAGS_FIN;
+              
+              eucBuffer[TCP_DATA_ADDR + 19] = '4';
+              eucBuffer[TCP_DATA_ADDR + 20] = '0';
+              eucBuffer[TCP_DATA_ADDR + 21] = '4';
+              
+              eucBuffer[IP_HEADER_LEN_ADDR + 0] = 0;
+              eucBuffer[IP_HEADER_LEN_ADDR + 1] = IP_HEADER_LEN + TCP_HEADER_LEN + 22;
+              eusPacketLen = ETH_HEADER_LEN + IP_HEADER_LEN + TCP_HEADER_LEN + 22;
+              
+              uiPageLoadedLen = PAGE_LOAD_WAIT;
+            }
+            else if(uiPageLoadedLen == PAGE_S)
+              ;
+            else
+              webapp(false);
+            
+            ENCPacketSend();
+          }
+#ifdef LOG_ENABLE
+          else
+            Serial.print("A");
+#endif
+        }
+     
+      }
+      
+#ifdef LOG_ENABLE
+      Serial.println(eusPacketLen);
+#endif
+    }
+   
+  }
+  else if(eucBuffer[IP_HEADER_PROTOCOL_ADDR] == IP_HEADER_PROTOCOL_UDP)
+  {
+#ifdef LOG_ENABLE
+    Serial.print("UDP");
+#endif
+
+    if(eucBuffer[IP_HEADER_DST_ADDR] == DEFAULT_SIP_0
+      && eucBuffer[IP_HEADER_DST_ADDR + 1] == DEFAULT_SIP_1
+      && eucBuffer[IP_HEADER_DST_ADDR + 2] == DEFAULT_SIP_2
+      && eucBuffer[IP_HEADER_DST_ADDR + 3] == DEFAULT_SIP_3) //Internal
+    {
+      // have nothing to do
+      ;
+    }
+    
+  }
+}
+User global int
+//this function will set up every enc28j60 function and when every thing is ok it'll call the function vTCPUDP() function.
+//this function set up all register and memory,
+//
+void ENCPacketReceive()
+{
+  __ENCPacketReceive_start:
+  if (ENCRead(EPKTCNT))
+  {
+    do
+    {
+      yield();
+
+      eusPacketLen = 0;
+
+      if (ENCRead(EIR) & RXERIF)
+      {
+#ifdef LOG_ENABLE
+        Serial.println("RE!");
+#endif
+        ENCWriteOp(BFS, ECON2, PKTDEC);
+        ENCRxRst();
+      }
+      else
+      {
+        ENCWrite(ERDPTL, eucRxPtrL);
+        ENCWrite(ERDPTH, eucRxPtrH);
+
+        digitalWrite(HSPI_SS, LOW);
+        delayMicroseconds(1);
+        hspi->write(RBM);
+        delayMicroseconds(1);
+
+        //next packet address pointer
+        eucRxPtrL = hspi->transfer(0);
+        eucRxPtrH = hspi->transfer(0);
+
+        //packet len
+        eusPacketLen = hspi->transfer(0);
+        eusPacketLen |= hspi->transfer(0) << 8;
+
+        //packet status 1 (errors and etc)
+        eucI = hspi->transfer(0);
+
+        if (eucI & RECEIVE_OK)
+        {
+          //packet status 2 (errors and etc)
+          eucI = hspi->transfer(0);
+
+          if (eusPacketLen > BUFFER_SIZE)
+            eusPacketLen = BUFFER_SIZE;
+
+          //checking the MAC address first
+          for (eusI = 0; eusI < 14; eusI++)
+            eucBuffer[eusI] = hspi->transfer(0);
+
+          if (eucBuffer[ETH_HEADER_DST_MAC_ADDR] == ucMyMAC[0]
+              && eucBuffer[ETH_HEADER_DST_MAC_ADDR + 1] == ucMyMAC[1]
+              && eucBuffer[ETH_HEADER_DST_MAC_ADDR + 2] == ucMyMAC[2]
+              && eucBuffer[ETH_HEADER_DST_MAC_ADDR + 3] == ucMyMAC[3]
+              && eucBuffer[ETH_HEADER_DST_MAC_ADDR + 4] == ucMyMAC[4]
+              && eucBuffer[ETH_HEADER_DST_MAC_ADDR + 5] == ucMyMAC[5]
+              && eucBuffer[ETH_HEADER_TYPE_ADDR] == ETH_HEADER_TYPE_IP_H
+              && eucBuffer[ETH_HEADER_TYPE_ADDR + 1] == ETH_HEADER_TYPE_IP_L)
+          {
+            //data
+            vTCPUDP();
+          }
+          else // skip the packet
+          {
+            eusPacketLen = 0;
+          }
+        }
+        else //continue
+        {
+#ifdef LOG_ENABLE
+          Serial.println("Re!");
+#endif
+          ENCRxRst();
+        }
+      }
+    } while (ENCRead(EPKTCNT));
+
+    if (ENCReadOp(RCR, ESTAT) & RXBUSY)
+    {
+      delayMicroseconds(5);
+
+      goto __ENCPacketReceive_start;
+    }
+
+    ENCWriteOp(BFS, ECON1, RXRST);
+    ENCWriteOp(BFC, ECON1, RXRST);
+    ENCWriteOp(BFS, ECON1, RXEN);
+
+    ENCWrite(ERXRDPTL, RXSTART_INIT & 0xFF);
+    ENCWrite(ERXRDPTH, RXSTART_INIT >> 8);
+  }
+}
