@@ -1,0 +1,44 @@
+#include <Wire.h> // wire library provides functions for I2C communication to communicate with devices using I2C 
+#include <Keypad_I2C.h> // this library provides an interface for using keypads connected via I2C communication.
+#define I2CADDR 0x20 // I2C address of the device here, it is 0x20 
+const int newSDA = 33;  // New SDA pin number for i2c
+const int newSCL = 32;  // New SCL pin number for i2c
+
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //four columns
+char keys[ROWS][COLS] = {
+  {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+};
+
+// Digitran keypad, bit numbers of PCF8574 i/o port
+byte rowPins[ROWS] = {0, 1, 2, 3}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {4, 5, 6, 7}; //connect to the column pinouts of the keypad
+
+Keypad_I2C kpd( makeKeymap(keys), rowPins, colPins, ROWS, COLS, I2CADDR, PCF8574 );
+/*Keypad_I2C kpd - initialize the keypad , 
+   makeKeymap(keys) - to define the layout of the keys on the keypad. 
+   rowPins - an array or a list of pins connected to the rows of the keypad. 
+   colPins - an array or a list of pins connected to the columns of the keypad. 
+   ROWS - Number of rows 
+   COLS - Number of columns
+   I2CADDR - I2C address of the PCF8574 I/O expander chip.
+   PCF8574 - the type of I/O expander being used (the PCF8574 chip.)
+*/
+
+void setup(){
+  Wire.begin(newSDA, newSCL);  // Initialize I2C with new pin numbers
+	  kpd.begin( makeKeymap(keys) );  // “makeKeymap(keys)” function passed an argument to “begin()”. This function call sets up the keypad object to start reading key presses.
+	  Serial.begin(115200); // serial begin
+	  Serial.println( "start" ); // prints start in the serial monitor
+}
+
+void loop(){
+	  char key = kpd.getKey(); // retrieve the currently passed key from the key pad from getKey() function
+	  
+	  if (key){
+		Serial.println(key); // prints the pressed key to  serial monitor.
+	  }
+}
