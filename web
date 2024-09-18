@@ -1,0 +1,71 @@
+#ifndef webapp_H_
+#define webapp_H_
+
+// The following code defines the webapp() function, which is responsible for transmitting HTML data.
+
+void webapp()
+{
+    // HTML string to be sent
+    const String s = "<!DOCTYPE html><html><head><title>Adaptable P10 Ethernet webpage</title><meta name='viewport' content='width=device-width' /><meta http-equiv='Content-Type' content='text/html; charset=UTF-8' /><style type='text/css'>select{opacity: 0;} body{ background-image: linear-gradient(to left, rgb(10, 28, 61),rgb(45, 120, 122));}.inner{min-height: 400px;margin-left: 50px;}#set{text-align: center;padding: 5px;padding-top: 0;margin-top: 4em;}nav .nav-wrapper{margin-top: 11em;}input[type=button]{background: #151e42;color: #FFF;cursor: pointer;font-size: 15px;padding: 10px;margin-top:2em;width: 200px;border-radius: 20px;}fieldset{margin: auto;padding: 5px;border: none;}input[type='text']{width: 60%;margin-top: 4em;padding: 10px;border: 2px solid #ccc;background: #FFF;height: 60px;}</style></head><body><div class='container' id='con'><nav><div class='nav-wrapper'><b style='color:black;text-align:center;font-size:3em;margin-left: 8em;'>ADAPTABLE P10 WEB INTERFACE</b></div></nav><div class='inner'><div id='set'><div class='row'><section class='white_balance'><fieldset><input type='text' id='tx' onkeypress='enterCheck(event);' /><br><br><input type='button' value='Send' onclick='tx();' /><br><br><select id='el'><option value='0'>No Line Ending</option><option value='1'>CR</option><option value='2'>NL</option><option value='3'>CRNL</option></select></fieldset></section></div></div></div><br /></div><script type=text/javascript>function id(e){return document.getElementById(e);}var t = id('tx'),el = id('el');function enterCheck(event){if(event.keyCode == 13)tx();}function tx(){if(t.value != '' || el.value != 0){xhrSend();id('loading').style.display = 'block';}}function xhrSend(){var ur = window.location.pathname, val, i;if(ur[ur.length - 1] != '/')ur += '/';if(window.XMLHttpRequest)xhr = new XMLHttpRequest();else{xhr = new ActiveXObject('Microsoft.XMLHTTP');}ur += encodeURIComponent(t.value);if(el.value == 1)ur += '%0D';else if(el.value == 2)ur += '%0A';else if(el.value == 3)ur += '%0D%0A';xhr.open('GET', ur, true);xhr.onload = function (o){var r = xhr.response;if(r != '1')alert(r);t.value = '';id('loading').style.display = 'none';};xhr.send();}</script></body></html>";
+    
+    // Check if the remaining portion of the HTML string can fit within a single packet
+    if (s.length() - uiPageLoadedLen <= LAN_TCP_BUFFER)
+    {
+        // Copy the remaining portion of the HTML string to the transmit buffer
+        // Starting from the uiPageLoadedLen index, convert it to a character array
+        s.substring(uiPageLoadedLen).toCharArray((char *)&eucBuffer[TCP_DATA_ADDR], s.length() - uiPageLoadedLen + 1);
+        
+        // Prepare the unit of data transmission in a network's length and flags for transmission
+        // Calculate the packet length by adding IP header, TCP header, and the remaining portion of the HTML string
+        eusPacketLen = IP_HEADER_LEN + TCP_HEADER_LEN + (s.length() - uiPageLoadedLen);
+        
+        // Set the TCP flags to include the FIN flag, indicating the final packet in the transmission
+        eucBuffer[TCP_HEADER_FLAGS_ADDR] |= TCP_HEADER_FLAGS_FIN;
+        
+        // Set the packet length bytes in the IP header
+        eucBuffer[IP_HEADER_LEN_ADDR + 0] = eusPacketLen >> 8;  // Higher byte
+        eucBuffer[IP_HEADER_LEN_ADDR + 1] = eusPacketLen & 0xFF;  // Lower byte
+        
+        // Calculate the total packet length by adding the Ethernet header length
+        eusPacketLen += ETH_HEADER_LEN;
+        
+        // Reset the page load length for the next transmission
+        uiPageLoadedLen = PAGE_LOAD_WAIT;
+    }
+    else
+    {
+        // If the remaining portion of the HTML string cannot fit within a single packet
+        
+        if (uiPageLoadedLen == 0)
+        {
+            // Copy a portion of the HTML string to the transmit buffer, starting from index 19
+            s.substring(uiPageLoadedLen, LAN_TCP_BUFFER).toCharArray((char *)&eucBuffer[TCP_DATA_ADDR + 19], LAN_TCP_BUFFER + 1);
+            
+            // Prepare the unit of data transmission in a network's length for transmission
+            // Calculate the packet length by adding IP header, TCP header, and the portion of the HTML string
+            eusPacketLen = IP_HEADER_LEN + TCP_HEADER_LEN + LAN_TCP_BUFFER + 19;
+        }
+        else
+        {
+            // Copy a portion of the HTML string to the transmit buffer
+            // Starting from the uiPageLoadedLen index, convert it to a character array
+            s.substring(uiPageLoadedLen, uiPageLoadedLen + LAN_TCP_BUFFER).toCharArray((char *)&eucBuffer[TCP_DATA_ADDR], LAN_TCP_BUFFER + 1);
+            
+            // Prepare the unit of data transmission in a network's length for transmission
+            // Calculate the packet length by adding IP header, TCP header, and the portion of the HTML string
+            eusPacketLen = IP_HEADER_LEN + TCP_HEADER_LEN + LAN_TCP_BUFFER;
+        }
+        
+        // Set the packet length bytes in the IP header
+        eucBuffer[IP_HEADER_LEN_ADDR + 0] = eusPacketLen >> 8;  // Higher byte
+        eucBuffer[IP_HEADER_LEN_ADDR + 1] = eusPacketLen & 0xFF;  // Lower byte
+        
+        // Calculate the total packet length by adding the Ethernet header length
+        eusPacketLen += ETH_HEADER_LEN;
+        
+        // Update the page load length for the next transmission
+        uiPageLoadedLen += LAN_TCP_BUFFER;
+    }
+}
+
+#endif // webapp_H_
