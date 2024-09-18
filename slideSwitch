@@ -1,0 +1,21 @@
+// Just a simple slide-switch demo
+
+void setup() { // called only for once
+       Serial.begin(115200); // data transfer rate - 115200, to send and receive data through the serail port. 
+
+  pinMode(16, INPUT_PULLUP); // pin 16 as an input pin with a pull-up resistor enabled, INPUT_PULLUP mode activates the internal pull-up resistor, which pulls the pin's voltage to a HIGH level when the pin is not externally driven.
+  pinMode(17, INPUT_PULLUP); //pin 16 as an input pin with a pull-up resistor enabled
+  pinMode(4, INPUT_PULLUP); // pin 4 as an input pin with a pull-up resistor enabled 
+
+}
+
+void loop() { // execute repeatedly after “setup()” function
+  if(!digitalRead((17))) // checks the state of the pin 17. “digitalRead()” function reads the digital value of a specified pin. 
+Serial.println("case1"); // case 1 will print in the seral monitor
+  if(!digitalRead((16))) //  checks the state of the pin 16. “digitalRead()” function reads the digital value of a specified pin. 
+Serial.println("case2");// case 2 will print in the serial monitor
+  if(!digitalRead((4))) // checks the state of the pin 16. “digitalRead()” function reads the digital value of a specified pin. 
+Serial.println("case3"); // case 3 will print in the serial monitor
+
+}
+
