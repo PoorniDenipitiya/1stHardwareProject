@@ -1,0 +1,153 @@
+#include <WiFi.h> // library provides the necessary functions and definitions to connect an Arduino board to a Wi-Fi network and enable Wi-Fi communication capabilities.
+#include "user_global.h" //predefined functions for ethernet communication
+#include "WebApp.h" //webpage for hosting
+//_______________________________________________
+
+//P10 part headers.
+#include <DMD32.h>    //Dmd32 library for displaying the p10
+#include <SPI.h>      //library is to enable communication with Sd card  using the Serial Peripheral Interface (SPI) protocol.
+                      // (SPI) protocol is a synchronous serial communication protocol that allows communication between a
+                      // microcontroller (master) and one or more peripheral devices (slaves)
+#include <SD.h>       //library is used to enable communication with SD (Secure Digital) card
+#include "fonts/SystemFont5x7.h"  //fonts that uses by dmd32 library for displaying p10
+#include "fonts/Arial_black_16.h"
+//_____________________________________________
+
+// Fire up the DMD library as dmd
+#define DISPLAYS_ACROSS 1    //define the cross panal of the p10 led display
+#define DISPLAYS_DOWN 1      //define the down panal of the p10 led display
+DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);   //inializing the p10 led display with the number of Display across and Down
+//________________________________________________
+
+bool is_loop_done = false;  // a bool for set up the ethernet function
+
+//setup for p10
+// Timer setup
+// Create a hardware timer of ESP32
+hw_timer_t *timer = NULL;
+/*--------------------------------------------------------------------------------------
+  Interrupt handler for Timer1 (TimerOne) driven DMD refresh scanning, this gets
+  called at the period set in Timer1.initialize();
+--------------------------------------------------------------------------------------*/
+void IRAM_ATTR triggerScan()
+{
+  dmd.scanDisplayBySPI();
+}
+//_________________________________________
+
+
+
+
+
+
+
+
+//Set up for ethernet
+char p10text[100];  //defining an array for saving the sentence by char. 
+int i = 0;  //an integer for knowing the position of an above array.
+//____________________________________
+
+
+void setup()
+{
+
+  Serial.begin(115200); //Serial begin
+  Serial.setDebugOutput(false);  // a function for ethernet part
+  delay(50);
+//_____________________________________________
+
+
+
+
+
+ //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//inializing the p10 led display 
+
+  // Return the clock speed of the CPU
+ uint8_t cpuClock = ESP.getCpuFreqMHz();
+// Use 1st timer of 4
+
+// Divide the CPU clock speed on its speed value by MHz to get 1us for each signal of the timer
+  timer = timerBegin(0, cpuClock, true);
+
+// Attach triggerScan function to our timer
+  timerAttachInterrupt(timer, &triggerScan, true);
+   
+// Set alarm to call triggerScan function
+// Repeat the alarm (third parameter)
+  timerAlarmWrite(timer, 300, true);
+
+// Start an alarm
+  timerAlarmEnable(timer);
+
+// Clear/init the DMD pixels held in RAM
+// true is normal (all pixels off), false is negative (all pixels on)
+  dmd.clearScreen(true); 
+//_____________________________________________
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+    userInit(); //iniate the ethernet.
+
+//end of the setup
+}
+
+
+
+//function that reads ethernet input and deliver into an array called P10text
+//this function will get each charecter by charecter after the submition of the on webpage.
+void function(char *ch){  
+p10text[i++] = *ch;     //*ch passes to p10text as an array position, and 'i++' leads to next array position.
+p10text[i] = '\0'; //it defines last charecter as null for complete the string.
+}
+
+
+//_____________________________________________________________
+
+//function that runs after reads input from ethernet
+void indicator(){  
+  delay(50);
+is_loop_done = true; //indicate to run the p10 led display.
+                     //this bool will identify the end of the string and it will start the function of printing of p10.
+  i = 0;             // set up the array for a new input.
+}
+
+
+
+
+
+void loop()
+{
+
+  ENCPacketReceive();  
+  
+  
+  if(is_loop_done){  //checks if the receives happened properly and start to print in the p10 led.
+  delay(50);
+  
+// 10 x 14 font clock, including a demo of OR and NOR modes for pixels so that the flashing colon can be overlayed
+  dmd.clearScreen(true);
+  dmd.selectFont(Arial_Black_16); //selecting the font
+
+  if (p10text[0] != '\0') // Check if text is available
+  {
+    Serial.println(p10text); //printin in the serial monitor.
+    dmd.drawMarquee(p10text, 14, (32 * DISPLAYS_ACROSS) - 1, 0); // a function for draw the text file in the marquee
+  }
+
+ long start = millis();    //set the current time.
+  long timer = start;     //copy the current time in timer.
+  boolean ret = false;    //set up a bool for loop function of marquee.
+  while (!ret)
+  {
+    if ((timer + 30) < millis())  //set upping the timer for marquee.
+    {
+      ret = dmd.stepMarquee(-1, 0);  //make the text file to move in marquee style.
+      timer = millis();
+    }
+  }
+}
+
+
+
+}
+
